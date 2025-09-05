@@ -146,4 +146,5 @@ void vector<T>::pop_back() {
 // ---------- explicit instantiations ----------
 template class vector<int>;
 template class vector<double>;
+template class vector<char>;
 template class vector<std::string>;
