@@ -1,80 +1,110 @@
-#pragma once
-#include <utility>   // std::swap
-#include <cstddef>   // std::nullptr_t
+#ifndef UNIQUE_PTR_HPP
+#define UNIQUE_PTR_HPP
 
-template <typename T>
-struct custom_deleter {
-    void operator()(T* p) const noexcept { delete p; }
-};
+#include <utility>
 
-template <typename T>
-class unique_ptr {
-public:
-    // types
-    using element_type = T;
-    using pointer      = T*;
-    using deleter_type = custom_deleter<T>;
-
-    // ctors
-    constexpr unique_ptr() noexcept : m_ptr(nullptr) {}
-    explicit unique_ptr(pointer p) noexcept : m_ptr(p) {}
-
-    // non-copyable
-    unique_ptr(const unique_ptr&)            = delete;
-    unique_ptr& operator=(const unique_ptr&) = delete;
-    ~unique_ptr() { m_deleter(m_ptr); }
-
-    // movable
-    unique_ptr(unique_ptr&& other) noexcept : m_ptr(other.release()) {}
-    unique_ptr& operator=(unique_ptr&& other) noexcept {
-        if (this != &other) {
-            reset(other.release()); // delete current, take other's
+namespace getcracked
+{
+    template <typename T>
+    struct custom_deleter
+    {
+        void operator()(T* pointer) const
+        {
+            delete pointer;
         }
-        return *this;
-    }
+    };
 
+    template <typename T, typename Deleter = custom_deleter<T>>
+    class unique_ptr
+    {
+    public:
+        unique_ptr() noexcept
+            : data(nullptr), is_owner(true) {}
 
+        explicit unique_ptr(T* pointer) noexcept
+            : data(pointer), is_owner(true) {}
 
-    // observers
-    pointer get() const noexcept         { return m_ptr; }
-    element_type& operator*() const      { return *m_ptr; }
-    pointer operator->() const noexcept  { return m_ptr; }
-    explicit operator bool() const noexcept { return m_ptr != nullptr; }
+        unique_ptr(const unique_ptr&) = delete;
+        unique_ptr& operator=(const unique_ptr&) = delete;
 
-    // modifiers
-    pointer release() noexcept {
-        pointer tmp = m_ptr;
-        m_ptr = nullptr;
-        return tmp;
-    }
-
-    void reset(pointer p = nullptr) noexcept {
-        if (m_ptr != p) {
-            m_deleter(m_ptr);
-            m_ptr = p;
+        unique_ptr(unique_ptr&& other) noexcept
+            : data(other.data), is_owner(true)
+        {
+            other.data = nullptr;
+            other.is_owner = false;
         }
-    }
 
-    void swap(unique_ptr& other) noexcept {
-        std::swap(m_ptr, other.m_ptr);
-    }
+        unique_ptr& operator=(unique_ptr&& other) noexcept
+        {
+            if (this != &other)
+            {
+                if (is_owner && data)
+                    deleter(data);
 
-    // utilities
-    bool is_owning() const noexcept { return m_ptr != nullptr; }
-    deleter_type&       get_deleter()       noexcept { return m_deleter; }
-    const deleter_type& get_deleter() const noexcept { return m_deleter; }
+                data = other.data;
+                is_owner = true;
 
-private:
-    pointer      m_ptr{nullptr};
-    deleter_type m_deleter{};
-};
+                other.data = nullptr;
+                other.is_owner = false;
+            }
+            return *this;
+        }
 
-// non-member swap
-template <typename T>
-inline void swap(unique_ptr<T>& a, unique_ptr<T>& b) noexcept { a.swap(b); }
+        ~unique_ptr()
+        {
+            if (is_owner && data)
+                deleter(data);
+        }
 
-// make_unique (basic version)
-template <typename T, typename... Args>
-unique_ptr<T> make_unique(Args&&... args) {
-    return unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
+        T* get() const noexcept
+        {
+            return data;
+        }
+
+        T& operator*() const
+        {
+            return *data;
+        }
+
+        T* operator->() const noexcept
+        {
+            return data;
+        }
+
+        explicit operator bool() const noexcept
+        {
+            return data != nullptr;
+        }
+
+        T* release() noexcept
+        {
+            T* temp = data;
+            data = nullptr;
+            is_owner = false;
+            return temp;
+        }
+
+        void reset(T* pointer = nullptr) noexcept
+        {
+            if (is_owner && data)
+                deleter(data);
+
+            data = pointer;
+            is_owner = true;
+        }
+
+        void swap(unique_ptr& other) noexcept
+        {
+            std::swap(data, other.data);
+            std::swap(is_owner, other.is_owner);
+        }
+
+    private:
+        T* data;
+        bool is_owner;
+        Deleter deleter;
+    };
+
+} // namespace getcracked
+
+#endif // UNIQUE_PTR_HPP
