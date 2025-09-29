@@ -10,6 +10,8 @@ class Arena {
 
 private:    
     static constexpr std::size_t alignment = alignof(std::max_align_t); // Max platform alignment (largest type guaranteed safe)
+    alignas(alignment) std::byte buffer_[N]; // Raw aligned memory block
+    std::byte* ptr_ = buffer_;  
 
     static std::size_t align_up(std::size_t n) noexcept { // Round n up to nearest multiple of alignment (power-of-2 trick)
         return (n + (alignment - 1)) & ~(alignment - 1);
@@ -20,10 +22,7 @@ private:
         auto a = reinterpret_cast<std::uintptr_t>(buffer_);
         auto b = reinterpret_cast<std::uintptr_t>(p);
         return b >= a && b < (a + N);
-    }
-
-    alignas(alignment) std::byte buffer_[N]; // Raw aligned memory block
-    std::byte* ptr_ = buffer_;               
+    }         
 
 public:
     Arena() noexcept = default;
@@ -60,4 +59,5 @@ public:
         // Note: arena allocations cannot be individually freed
     }
 };
+
 
