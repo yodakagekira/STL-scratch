@@ -14,10 +14,6 @@ public:
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
-    using is_always_equal = std::false_type;
-    using propagate_on_container_move_assignment = std::true_type;
-    using propagate_on_container_swap = std::true_type;
-
 private:
     arena_type* m_arena = nullptr;
 
@@ -48,3 +44,4 @@ public:
 
     template <class U, std::size_t M> friend class Mallocator;
 };
+
