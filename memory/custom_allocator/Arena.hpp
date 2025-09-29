@@ -7,7 +7,7 @@
 
 template <std::size_t N>
 class Arena {
-    
+
 private:    
     static constexpr std::size_t alignment = alignof(std::max_align_t); // Max platform alignment (largest type guaranteed safe)
 
@@ -60,3 +60,4 @@ public:
         // Note: arena allocations cannot be individually freed
     }
 };
+
